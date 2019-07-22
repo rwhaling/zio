@@ -44,7 +44,7 @@ lazy val root = project
   .aggregate(
     coreJVM,
     coreJS,
-    docs,
+    // docs,
     streamsJVM,
     streamsJS,
     benchmarks,
@@ -54,19 +54,22 @@ lazy val root = project
   )
   .enablePlugins(ScalaJSPlugin)
 
-lazy val core = crossProject(JSPlatform, JVMPlatform)
+lazy val core = crossProject(JSPlatform, JVMPlatform, NativePlatform)
   .in(file("core"))
   .dependsOn(stacktracer)
   .settings(stdSettings("zio"))
   .settings(buildInfoSettings)
   .settings(
-    libraryDependencies ++= Seq(
-      "org.specs2" %%% "specs2-core"          % "4.6.0" % Test,
-      "org.specs2" %%% "specs2-scalacheck"    % "4.6.0" % Test,
-      "org.specs2" %%% "specs2-matcher-extra" % "4.6.0" % Test
-    ),
-    publishArtifact in (Test, packageBin) := true
-  )
+    // libraryDependencies ++= Seq(
+    //   "org.specs2" %%% "specs2-core"          % "4.4.1" % Test,
+    //   "org.specs2" %%% "specs2-scalacheck"    % "4.4.1" % Test,
+    //   "org.specs2" %%% "specs2-matcher-extra" % "4.4.1" % Test
+    // ),
+    publishArtifact in (packageBin) := true,
+    // sources in compile in Test := Nil
+    skip in Test := true,
+    skip in doc := true
+    )
   .enablePlugins(BuildInfoPlugin)
 
 lazy val coreJVM = core.jvm
@@ -77,6 +80,16 @@ lazy val coreJVM = core.jvm
 lazy val coreJS = core.js
   .settings(
     libraryDependencies += "org.scala-js" %%% "scalajs-java-time" % "0.2.5" % Test
+  )
+
+lazy val coreNative = core.native
+  .settings( 
+    // includeFilter in (Test, unmanagedSources) := HiddenFileFilter || "foobar"
+
+  // publishLocal in Test := {}
+    // compile in Test := {}
+  
+    // test in publishLocal := println("tests disabled")
   )
 
 lazy val streams = crossProject(JSPlatform, JVMPlatform)
@@ -97,22 +110,27 @@ lazy val testkit = crossProject(JVMPlatform)
 
 lazy val testkitJVM = testkit.jvm
 
-lazy val stacktracer = crossProject(JSPlatform, JVMPlatform)
+lazy val stacktracer = crossProject(JSPlatform, JVMPlatform, NativePlatform)
   .in(file("stacktracer"))
   .settings(stdSettings("zio-stacktracer"))
   .settings(buildInfoSettings)
   .settings(
-    libraryDependencies ++= Seq(
-      "org.specs2" %%% "specs2-core"          % "4.6.0" % Test,
-      "org.specs2" %%% "specs2-scalacheck"    % "4.6.0" % Test,
-      "org.specs2" %%% "specs2-matcher-extra" % "4.6.0" % Test
-    )
+    skip in Test := true,
+    skip in doc := true
+
+    // libraryDependencies ++= Seq(
+    //   "org.specs2" %%% "specs2-core"          % "4.4.1" % Test,
+    //   "org.specs2" %%% "specs2-scalacheck"    % "4.4.1" % Test,
+    //   "org.specs2" %%% "specs2-matcher-extra" % "4.4.1" % Test
+    // )
   )
 
 lazy val stacktracerJS = stacktracer.js
 lazy val stacktracerJVM = stacktracer.jvm
   .settings(dottySettings)
   .settings(replSettings)
+
+lazy val stacktracerNative = stacktracer.native
 
 lazy val benchmarks = project.module
   .dependsOn(coreJVM, streamsJVM)
@@ -150,35 +168,36 @@ lazy val benchmarks = project.module
     )
   )
 
-lazy val docs = project.module
-  .in(file("zio-docs"))
-  .settings(
-    // skip 2.13 mdoc until mdoc is available for 2.13
-    crossScalaVersions -= "2.13.0",
-    //
-    skip.in(publish) := true,
-    moduleName := "zio-docs",
-    unusedCompileDependenciesFilter -= moduleFilter("org.scalameta", "mdoc"),
-    scalacOptions -= "-Yno-imports",
-    scalacOptions -= "-Xfatal-warnings",
-    scalacOptions ~= { _ filterNot (_ startsWith "-Ywarn") },
-    scalacOptions ~= { _ filterNot (_ startsWith "-Xlint") },
-    libraryDependencies ++= Seq(
-      "com.github.ghik"     %% "silencer-lib"                % "1.4.1" % "provided",
-      "commons-io"          % "commons-io"                   % "2.6" % "provided",
-      "org.jsoup"           % "jsoup"                        % "1.12.1" % "provided",
-      "org.reactivestreams" % "reactive-streams-examples"    % "1.0.2" % "provided",
-      "dev.zio"             %% "zio-interop-cats"            % "2.0.0.0-RC1",
-      "dev.zio"             %% "zio-interop-future"          % "2.12.8.0-RC2",
-      "dev.zio"             %% "zio-interop-monix"           % "3.0.0.0-RC3",
-      "dev.zio"             %% "zio-interop-scalaz7x"        % "7.2.27.0-RC1",
-      "dev.zio"             %% "zio-interop-java"            % "1.1.0.0-RC2",
-      "dev.zio"             %% "zio-interop-reactivestreams" % "1.0.2.0-RC2",
-      "dev.zio"             %% "zio-interop-twitter"         % "19.6.0.0-RC3"
-    )
-  )
-  .dependsOn(
-    coreJVM,
-    streamsJVM
-  )
-  .enablePlugins(MdocPlugin, DocusaurusPlugin)
+// lazy val docs = project.module
+//   .in(file("zio-docs"))
+//   .settings(
+//     // skip 2.13 mdoc until mdoc is available for 2.13
+//     crossScalaVersions -= "2.13.0",
+//     //
+//     skip.in(publish) := true,
+//     skip.in(publishLocal) := true,
+//     moduleName := "zio-docs",
+//     unusedCompileDependenciesFilter -= moduleFilter("org.scalameta", "mdoc"),
+//     scalacOptions -= "-Yno-imports",
+//     scalacOptions -= "-Xfatal-warnings",
+//     scalacOptions ~= { _ filterNot (_ startsWith "-Ywarn") },
+//     scalacOptions ~= { _ filterNot (_ startsWith "-Xlint") },
+//     libraryDependencies ++= Seq(
+//       "com.github.ghik"     %% "silencer-lib"                % "1.4.1" % "provided",
+//       "commons-io"          % "commons-io"                   % "2.6" % "provided",
+//       "org.jsoup"           % "jsoup"                        % "1.12.1" % "provided",
+//       "org.reactivestreams" % "reactive-streams-examples"    % "1.0.2" % "provided",
+//       "dev.zio"             %% "zio-interop-cats"            % "2.0.0.0-RC1",
+//       "dev.zio"             %% "zio-interop-future"          % "2.12.8.0-RC2",
+//       "dev.zio"             %% "zio-interop-monix"           % "3.0.0.0-RC3",
+//       "dev.zio"             %% "zio-interop-scalaz7x"        % "7.2.27.0-RC1",
+//       "dev.zio"             %% "zio-interop-java"            % "1.1.0.0-RC2",
+//       "dev.zio"             %% "zio-interop-reactivestreams" % "1.0.2.0-RC2",
+//       "dev.zio"             %% "zio-interop-twitter"         % "19.6.0.0-RC3"
+//     )
+//   )
+//   .dependsOn(
+//     coreJVM,
+//     streamsJVM
+//   )
+//   .enablePlugins(MdocPlugin, DocusaurusPlugin)
